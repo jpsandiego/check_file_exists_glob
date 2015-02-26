@@ -1,4 +1,10 @@
 #!/bin/bash
+## 2015.02.25 Changed to search against files explicitly 
+##      and to a depth of 3 instead of one. Also change output to 
+##      include the count of found files. 
+##      My use case:
+##      ./check_file_exists_glob -i -d /var/log/scribe/ -w 1 -c 3 "*"
+
 # Copyright(C) 2013 Mark Clarkson <mark.clarkson@smorg.co.uk>
 #
 #    This software is provided under the terms of the GNU
@@ -56,6 +62,7 @@ main()
     sanity_checks
 
     # Fill in the stats variables 
+    FOUNDCOUNT=0
     do_check
 
     txt="OK:"
@@ -67,7 +74,7 @@ main()
         [[ $NFILES -ge $WARNLVL ]] && txt="WARNING: "
         [[ $NFILES -ge $CRITLVL ]] && txt="CRITICAL: "
         msg="File does not exist, '$FILE'."
-        [[ $INVERTFILE -eq 1 ]] && msg="File '$FILE' found in '$DIR'."
+        [[ $INVERTFILE -eq 1 ]] && msg="Found $FOUNDCOUNT files in  '$DIR'."
         [[ $ALERTDIR -eq 1 ]] && msg+=" Directory does not exist, '$DIR'."
     elif [[ $ALERTDIR -eq 1 ]]; then
         retval=$CRIT
@@ -174,7 +181,7 @@ do_check()
     [[ $INVERTFILE -eq 1 && $INVERTDIR -eq 1 && ! -d $DIR ]] && \
         ALERTDIR=1
     [[ $INVERTFILE -eq 0 ]] && {
-        found=`find $DIR -maxdepth 1 -name "$FILE" 2>/dev/null | wc -l`
+        found=`find $DIR -maxdepth 3 -type f -name "$FILE" 2>/dev/null | wc -l`
         NFILES=$found
         [[ $found -eq 0 ]] && {
             ALERTFILE=1
@@ -182,10 +189,11 @@ do_check()
         }
     }
     [[ $INVERTFILE -eq 1 ]] && {
-        found=`find $DIR -maxdepth 1 -name "$FILE" 2>/dev/null | wc -l`
+        found=`find $DIR -maxdepth 3 -type f -name "$FILE" 2>/dev/null | wc -l`
         NFILES=$found
         [[ $found -ge 1 ]] && {
             ALERTFILE=1
+	    FOUNDCOUNT=$found
             return
         }
     }
